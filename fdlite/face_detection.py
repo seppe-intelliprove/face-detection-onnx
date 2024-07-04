@@ -18,7 +18,7 @@ Reference:
 """
 import numpy as np
 import os
-import tensorflow as tf
+import onnxruntime as ort
 from enum import IntEnum
 from PIL.Image import Image
 from typing import List, Optional, Union
@@ -28,11 +28,10 @@ from fdlite.transform import detection_letterbox_removal, image_to_tensor
 from fdlite.transform import sigmoid
 from fdlite.types import Detection, Rect
 
-MODEL_NAME_BACK = 'face_detection_back.tflite'
-MODEL_NAME_FRONT = 'face_detection_front.tflite'
-MODEL_NAME_SHORT = 'face_detection_short_range.tflite'
-MODEL_NAME_FULL = 'face_detection_full_range.tflite'
-MODEL_NAME_FULL_SPARSE = 'face_detection_full_range_sparse.tflite'
+MODEL_NAME_BACK = 'face_detection_back.onnx'
+MODEL_NAME_FRONT = 'face_detection_front.onnx'
+MODEL_NAME_SHORT = 'face_detection_short_range.onnx'
+MODEL_NAME_FULL = 'face_detection_full_range.onnx'
 
 # score limit is 100 in mediapipe and leads to overflows with IEEE 754 floats
 # this lower limit is safe for use with the sigmoid functions and float32
@@ -127,7 +126,6 @@ class FaceDetectionModel(IntEnum):
     BACK_CAMERA = 1
     SHORT = 2
     FULL = 3
-    FULL_SPARSE = 4
 
 
 class FaceDetection:
@@ -180,17 +178,13 @@ class FaceDetection:
         elif model_type == FaceDetectionModel.FULL:
             self.model_path = os.path.join(model_path, MODEL_NAME_FULL)
             ssd_opts = SSD_OPTIONS_FULL
-        elif model_type == FaceDetectionModel.FULL_SPARSE:
-            self.model_path = os.path.join(model_path, MODEL_NAME_FULL_SPARSE)
-            ssd_opts = SSD_OPTIONS_FULL
         else:
             raise InvalidEnumError(f'unsupported model_type "{model_type}"')
-        self.interpreter = tf.lite.Interpreter(model_path=self.model_path)
-        self.interpreter.allocate_tensors()
-        self.input_index = self.interpreter.get_input_details()[0]['index']
-        self.input_shape = self.interpreter.get_input_details()[0]['shape']
-        self.bbox_index = self.interpreter.get_output_details()[0]['index']
-        self.score_index = self.interpreter.get_output_details()[1]['index']
+        self.session = ort.InferenceSession(self.model_path)
+        self.input_name = self.session.get_inputs()[0].name
+        self.input_shape = self.session.get_inputs()[0].shape
+        self.bbox_name = self.session.get_outputs()[0].name
+        self.score_name = self.session.get_outputs()[1].name
         self.anchors = _ssd_generate_anchors(ssd_opts)
 
     def __call__(
@@ -218,10 +212,10 @@ class FaceDetection:
             keep_aspect_ratio=True,
             output_range=(-1, 1))
         input_data = image_data.tensor_data[np.newaxis]
-        self.interpreter.set_tensor(self.input_index, input_data)
-        self.interpreter.invoke()
-        raw_boxes = self.interpreter.get_tensor(self.bbox_index)
-        raw_scores = self.interpreter.get_tensor(self.score_index)
+        inputs = {self.input_name: input_data}
+        outputs = self.session.run(None, inputs)
+        raw_boxes = outputs[0]
+        raw_scores = outputs[1]
         boxes = self._decode_boxes(raw_boxes)
         scores = self._get_sigmoid_scores(raw_scores)
         detections = FaceDetection._convert_to_detections(boxes, scores)
@@ -283,7 +277,6 @@ class FaceDetection:
         return [Detection(box, score)
                 for box, score in zip(filtered_boxes, filtered_scores)
                 if is_valid(box)]
-
 
 def _ssd_generate_anchors(opts: dict) -> np.ndarray:
     """This is a trimmed down version of the C++ code; all irrelevant parts

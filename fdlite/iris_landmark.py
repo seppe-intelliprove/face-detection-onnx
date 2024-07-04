@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from enum import IntEnum
 import numpy as np
 import os
-import tensorflow as tf
+import onnxruntime as ort
 from PIL.Image import Image
 from typing import List, Optional, Sequence, Tuple, Union
 from fdlite import ArgumentError, MissingExifDataError, ModelDataError, exif
@@ -26,7 +26,7 @@ Reference:
     N/A
 """
 
-MODEL_NAME = 'iris_landmark.tflite'
+MODEL_NAME = 'iris_landmark.onnx'
 # ROI scale factor for 25% margin around eye
 ROI_SCALE = (2.3, 2.3)
 # Landmark index of the left eye start point
@@ -396,7 +396,6 @@ def iris_depth_in_mm_from_landmarks(
                                      right_iris_size, pixel_size)
     return left_depth_mm, right_depth_mm
 
-
 class IrisLandmark:
     """Model for iris landmark detection from the image of an eye.
 
@@ -413,29 +412,7 @@ class IrisLandmark:
     The provided image either matches the model's input spec or an ROI is
     provided, which denotes the eye location within the image.
     The ROI can be obtained from calling the `FaceDetection` model with the
-    image and converting the iris ROI from the result:
-
-    ```
-        MODEL_PATH = '/var/mediapipe/models'
-
-        img = PIL.Image.open('/home/usr/pictures/group.jpg', mode='RGB')
-        # 1) load models
-        detect_face = FaceDetection(model_path=MODEL_PATH)
-        detect_face_landmarks = FaceLandmark(model_path=MODEL_PATH)
-        detect_iris_landmarks = IrisLandmark(model_path=MODEL_PATH)
-        # 2) run face detection
-        face_detections = detect_face(img)
-        # 3) detect face landmarks
-        for detection in face_detections:
-            face_roi = face_detection_to_roi(detection, img.size)
-            face_landmarks = detect_face_landmarks(img, face_roi)
-            # 4) run iris detection
-            iris_roi = iris_roi_from_landmarks(face_landmarks, img.size)
-            left_eye_detection = detect_iris_landmarks(img, iris_roi[0])
-            right_eye_detection = detect_iris_landmarks(
-                img, iris_roi[1], is_right_eye=True)
-            ...
-    ```
+    image and converting the iris ROI from the result.
 
     Raises:
         ModelDataError: `model_path` refers to an incompatible detection model
@@ -445,21 +422,20 @@ class IrisLandmark:
             my_path = os.path.abspath(__file__)
             model_path = os.path.join(os.path.dirname(my_path), 'data')
         self.model_path = os.path.join(model_path, MODEL_NAME)
-        self.interpreter = tf.lite.Interpreter(model_path=self.model_path)
-        self.input_index = self.interpreter.get_input_details()[0]['index']
-        self.input_shape = self.interpreter.get_input_details()[0]['shape']
-        self.eye_index = self.interpreter.get_output_details()[0]['index']
-        self.iris_index = self.interpreter.get_output_details()[1]['index']
+        self.session = ort.InferenceSession(self.model_path)
+        self.input_name = self.session.get_inputs()[0].name
+        self.input_shape = self.session.get_inputs()[0].shape
+        self.eye_name = self.session.get_outputs()[0].name
+        self.iris_name = self.session.get_outputs()[1].name
 
-        eye_shape = self.interpreter.get_output_details()[0]['shape']
+        eye_shape = self.session.get_outputs()[0].shape
         if eye_shape[-1] != NUM_DIMS * NUM_EYE_LANDMARKS:
             raise ModelDataError('unexpected number of eye landmarks: '
                                  f'{eye_shape[-1]}')
-        iris_shape = self.interpreter.get_output_details()[1]['shape']
+        iris_shape = self.session.get_outputs()[1].shape
         if iris_shape[-1] != NUM_DIMS * NUM_IRIS_LANDMARKS:
             raise ModelDataError('unexpected number of iris landmarks: '
-                                 f'{eye_shape[-1]}')
-        self.interpreter.allocate_tensors()
+                                 f'{iris_shape[-1]}')
 
     def __call__(
         self,
@@ -477,11 +453,10 @@ class IrisLandmark:
             flip_horizontal=is_right_eye
         )
         input_data = image_data.tensor_data[np.newaxis]
-        self.interpreter.set_tensor(self.input_index, input_data)
-        self.interpreter.invoke()
-        raw_eye_landmarks = self.interpreter.get_tensor(self.eye_index)
-        raw_iris_landmarks = self.interpreter.get_tensor(self.iris_index)
-        height, width = self.input_shape[1:3]
+        inputs = {self.input_name: input_data}
+        outputs = self.session.run(None, inputs)
+        raw_eye_landmarks = outputs[0]
+        raw_iris_landmarks = outputs[1]
         eye_contour = project_landmarks(
             raw_eye_landmarks,
             tensor_size=(width, height),
@@ -497,7 +472,6 @@ class IrisLandmark:
             roi=roi,
             flip_horizontal=is_right_eye)
         return IrisResults(eye_contour, iris_landmarks)
-
 
 def _get_iris_diameter(
     iris_landmarks: Sequence[Landmark], image_size: Tuple[int, int]
