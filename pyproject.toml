@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "face-detection-onnx"
-version = "0.1.0"
+version = "0.1.1"
 description = "A Python port of Google MediaPipe Face Detection modules running in ONNX"
 authors = ["Patrick Levin <vertical-pink@protonmail.com>", "Seppe De Langhe <seppe.delanghe@intelliprove.com>"]
 license = "MIT"
@@ -14,7 +14,7 @@ packages = [
 
 [tool.poetry.dependencies]
 python = ">=3.8"
-onnxruntime = ">=1.16"
+onnxruntime = ">=1.15"
 Pillow = ">=10.3.0"
 
 [tool.poetry.dev-dependencies]
