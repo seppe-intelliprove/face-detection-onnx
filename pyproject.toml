@@ -1,6 +1,34 @@
-[build-system]
-requires = [
-    "setuptools>=42",
-    "wheel"
+[tool.poetry]
+name = "face-detection-onnx"
+version = "0.1.0"
+description = "A Python port of Google MediaPipe Face Detection modules running in ONNX"
+authors = ["Patrick Levin <vertical-pink@protonmail.com>", "Seppe De Langhe <seppe.delanghe@intelliprove.com>"]
+license = "MIT"
+readme = "README.md"
+homepage = "https://github.com/seppe-intelliprove/face-detection-onnx"
+repository = "https://github.com/seppe-intelliprove/face-detection-onnx"
+keywords = ["AI", "face-detection", "onnx", "face-landmarks", "iris-detection", "face-mesh"]
+packages = [
+	{ include = "fdlite" }
 ]
-build-backend = "setuptools.build_meta"
+
+[tool.poetry.dependencies]
+python = ">=3.8"
+onnxruntime = ">=1.16"
+Pillow = ">=10.3.0"
+
+[tool.poetry.dev-dependencies]
+flake8 = "*"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.flake8]
+exclude = [
+    ".eggs",
+    ".git",
+    "__pycache__",
+    "build",
+    "dist",
+]
