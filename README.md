@@ -1,6 +1,11 @@
-# Face Detection For Python
+# Face Detection For Python using ONNX
 
-This package implements parts of Google®'s [**MediaPipe**](https://mediapipe.dev/#!) models in pure Python (with a little help from Numpy and PIL) without `Protobuf` graphs and with minimal dependencies (just [**TF Lite**](https://www.tensorflow.org/lite/api_docs) and [**Pillow**](https://python-pillow.org/)).
+This package implements parts of Google®'s [**MediaPipe**](https://mediapipe.dev/#!) models in pure Python (with a little help from Numpy and PIL) without `Protobuf` graphs and with minimal dependencies (just [**ONNX**](https://onnx.ai/onnx/api/) and [**Pillow**](https://python-pillow.org/)).
+
+
+## Credits
+This is a fork of a repo by [patlevin](https://github.com/patlevin) who did all the heavy lifting. Credits to [patlevin](https://github.com/patlevin) for the majority of this code. \
+Original repository: https://github.com/patlevin/face-detection-tflite
 
 ## Models and Examples
 
@@ -8,19 +13,19 @@ The package provides the following models:
 
 * Face Detection
 
-![Face detection example](https://raw.githubusercontent.com/patlevin/face-detection-tflite/main/docs/group_photo.jpg)
+![Face detection example](https://raw.githubusercontent.com/seppe-intelliprove/face-detection-tflite/main/docs/group_photo.jpg)
 
 * Face Landmark Detection
 
-![Face landmark example](https://raw.githubusercontent.com/patlevin/face-detection-tflite/main/docs/portrait_fl.jpg)
+![Face landmark example](https://raw.githubusercontent.com/seppe-intelliprove/face-detection-tflite/main/docs/portrait_fl.jpg)
 
 * Iris Landmark Detection
 
-![Iris landmark example](https://raw.githubusercontent.com/patlevin/face-detection-tflite/main/docs/eyes.jpg)
+![Iris landmark example](https://raw.githubusercontent.com/seppe-intelliprove/face-detection-tflite/main/docs/eyes.jpg)
 
 * Iris recoloring example
 
-![Iris recoloring example](https://raw.githubusercontent.com/patlevin/face-detection-tflite/main/docs/recolored.jpg)
+![Iris recoloring example](https://raw.githubusercontent.com/seppe-intelliprove/face-detection-tflite/main/docs/recolored.jpg)
 
 ## Motivation
 
@@ -55,37 +60,36 @@ Note that the package ships with five models:
   selfies and close-up portraits; this is the default model used
 * `FaceDetectionModel.BACK_CAMERA` - a larger model suitable for group
  images and wider shots with smaller faces
-* `FaceDetectionModel.SHORT` - a model best suited for short range images,
-  i.e. faces are within 2 metres from the camera
 * `FaceDetectionModel.FULL` - a model best suited for mid range images,
   i.e. faces are within 5 metres from the camera
-* `FaceDetectionModel.FULL_SPARSE` - a model best suited for mid range images,
-  i.e. faces are within 5 metres from the camera
 
-The `FaceDetectionModel.FULL` and `FaceDetectionModel.FULL_SPARSE` models are
-equivalent in terms of detection quality. They differ in that the full model
-is a dense model whereas the sparse model runs up to 30% faster on CPUs. On a
-GPU, both models exhibit similar runtime performance. In addition, the dense
-full model has slightly better [Recall](https://en.wikipedia.org/wiki/Precision_and_recall),
-whereas the sparse model features a higher [Precision](https://en.wikipedia.org/wiki/Precision_and_recall).
-
-If you don't know whether the image is a close-up portrait or you get no
-detections with the default model, try using the `BACK_CAMERA`-model instead.
+If you don't know if you need `FULL` of `BACK_CAMERA`, use the `BACK_CAMERA` as it is most versatile.
 
 ## Installation
 
-The latest release version is available in [PyPI](https://pypi.org/project/face-detection-tflite/0.1.0/)
-and can be installed via:
+The latest version be installed via:
 
 ```sh
-pip install -U face-detection-tflite
+pip install git+https://github.com/seppe-intelliprove/face-detection-onnx
 ```
 
 The package can be also installed from source by navigating to the folder
-containing `setup.py` and running
+containing `pyproject.toml` and running
 
 ```sh
 pip install .
 ```
 
-from a shell or command prompt.
+## Development, Building and publishing
+
+This project uses [python-poetry](https://python-poetry.org/) for dependency management. It can also be used to build and publish this package.
+
+__install required dependencies__
+```
+poetry install
+```
+
+__build a wheel__
+```
+poetry build
+```
