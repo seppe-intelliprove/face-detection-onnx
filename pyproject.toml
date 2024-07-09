@@ -32,3 +32,20 @@ exclude = [
     "build",
     "dist",
 ]
+
+[tool.ruff]
+exclude = [ ".lock", ".toml", ".md", "__init__.py", ".venv", ".git",]
+force-exclude = true
+line-length = 140
+indent-width = 4
+target-version = "py39"
+
+[tool.ruff.lint]
+select = [ "E4", "E7", "E9", "F",]
+ignore = []
+
+[tool.ruff.format]
+quote-style = "single"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+
