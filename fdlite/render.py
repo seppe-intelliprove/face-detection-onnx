@@ -7,21 +7,21 @@ from PIL import ImageDraw
 from PIL.Image import Image as PILImage
 from fdlite import CoordinateRangeError
 from fdlite.types import Detection, Landmark
+
 """Types and functions related to rendering detection results"""
 
 
 @dataclass
 class Color:
     """Color for rendering annotations"""
+
     r: int = 0
     g: int = 0
     b: int = 0
     a: Optional[int] = None
 
     @property
-    def as_tuple(
-        self
-    ) -> Union[Tuple[int, int, int], Tuple[int, int, int, int]]:
+    def as_tuple(self) -> Union[Tuple[int, int, int], Tuple[int, int, int, int]]:
         """Return color components as tuple"""
         r, g, b, a = self.r, self.g, self.b, self.a
         return (r, g, b) if a is None else (r, g, b, a)
@@ -29,6 +29,7 @@ class Color:
 
 class Colors:
     """Predefined common color values for use with annotations rendering"""
+
     BLACK = Color()
     RED = Color(r=255)
     GREEN = Color(g=255)
@@ -40,6 +41,7 @@ class Colors:
 @dataclass
 class Point:
     """A point to be rendered"""
+
     x: float
     y: float
 
@@ -57,6 +59,7 @@ class Point:
 @dataclass
 class RectOrOval:
     """A rectangle or oval to be rendered"""
+
     left: float
     top: float
     right: float
@@ -71,13 +74,13 @@ class RectOrOval:
     def scaled(self, factor: Tuple[float, float]) -> 'RectOrOval':
         """Return a rect or oval with absolute positions"""
         sx, sy = factor
-        return RectOrOval(self.left * sx,  self.top * sy,
-                          self.right * sx, self.bottom * sy, self.oval)
+        return RectOrOval(self.left * sx, self.top * sy, self.right * sx, self.bottom * sy, self.oval)
 
 
 @dataclass
 class FilledRectOrOval:
     """A filled rectangle or oval to be rendered"""
+
     rect: RectOrOval
     fill: Color
 
@@ -89,6 +92,7 @@ class FilledRectOrOval:
 @dataclass
 class Line:
     """A solid or dashed line to be rendered"""
+
     x_start: float
     y_start: float
     x_end: float
@@ -103,8 +107,7 @@ class Line:
     def scaled(self, factor: Tuple[float, float]) -> 'Line':
         """Return line with absolute positions"""
         sx, sy = factor
-        return Line(self.x_start * sx, self.y_start * sy,
-                    self.x_end * sx, self.y_end * sy, self.dashed)
+        return Line(self.x_start * sx, self.y_start * sy, self.x_end * sx, self.y_end * sy, self.dashed)
 
 
 @dataclass
@@ -119,6 +122,7 @@ class Annotation:
     The corresponding converter functions will automatically
     bundle data by type and format.
     """
+
     data: Sequence[Union[Point, RectOrOval, FilledRectOrOval, Line]]
     normalized_positions: bool
     thickness: float
@@ -140,8 +144,7 @@ class Annotation:
         if not self.normalized_positions:
             raise CoordinateRangeError('position data must be normalized')
         scaled_data = [item.scaled(factor) for item in self.data]
-        return Annotation(scaled_data, normalized_positions=False,
-                          thickness=self.thickness, color=self.color)
+        return Annotation(scaled_data, normalized_positions=False, thickness=self.thickness, color=self.color)
 
 
 def detections_to_render_data(
@@ -151,7 +154,7 @@ def detections_to_render_data(
     line_width: int = 1,
     point_width: int = 3,
     normalized_positions: bool = True,
-    output: Optional[List[Annotation]] = None
+    output: Optional[List[Annotation]] = None,
 ) -> List[Annotation]:
     """Convert detections to render data.
 
@@ -194,16 +197,17 @@ def detections_to_render_data(
 
     annotations = []
     if bounds_color is not None and line_width > 0:
-        bounds = Annotation([to_rect(detection) for detection in detections],
-                            normalized_positions, thickness=line_width,
-                            color=bounds_color)
+        bounds = Annotation(
+            [to_rect(detection) for detection in detections], normalized_positions, thickness=line_width, color=bounds_color
+        )
         annotations.append(bounds)
     if keypoint_color is not None and point_width > 0:
-        points = Annotation([Point(x, y)
-                            for detection in detections
-                            for (x, y) in detection],
-                            normalized_positions, thickness=point_width,
-                            color=keypoint_color)
+        points = Annotation(
+            [Point(x, y) for detection in detections for (x, y) in detection],
+            normalized_positions,
+            thickness=point_width,
+            color=keypoint_color,
+        )
         annotations.append(points)
     if output is not None:
         output += annotations
@@ -217,9 +221,9 @@ def landmarks_to_render_data(
     landmark_connections: Sequence[Tuple[int, int]],
     landmark_color: Color = Colors.RED,
     connection_color: Color = Colors.RED,
-    thickness: float = 1.,
+    thickness: float = 1.0,
     normalized_positions: bool = True,
-    output: Optional[List[Annotation]] = None
+    output: Optional[List[Annotation]] = None,
 ) -> List[Annotation]:
     """Convert detected landmarks to render data.
 
@@ -256,8 +260,7 @@ def landmarks_to_render_data(
         (list) List of annotations for rendering landmarks.
     """
     lm = landmarks
-    lines = [Line(lm[start].x, lm[start].y, lm[end].x, lm[end].y)
-             for start, end in landmark_connections]
+    lines = [Line(lm[start].x, lm[start].y, lm[end].x, lm[end].y) for start, end in landmark_connections]
     points = [Point(landmark.x, landmark.y) for landmark in landmarks]
     la = Annotation(lines, normalized_positions, thickness, connection_color)
     pa = Annotation(points, normalized_positions, thickness, landmark_color)
@@ -268,11 +271,7 @@ def landmarks_to_render_data(
     return output
 
 
-def render_to_image(
-    annotations: Sequence[Annotation],
-    image: PILImage,
-    blend: bool = False
-) -> PILImage:
+def render_to_image(annotations: Sequence[Annotation], image: PILImage, blend: bool = False) -> PILImage:
     """Render annotations to an image.
 
     Args:

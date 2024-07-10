@@ -4,6 +4,7 @@
 from dataclasses import dataclass
 import numpy as np
 from typing import Optional, Tuple, Union
+
 """Types used throughout the library"""
 
 
@@ -14,6 +15,7 @@ class ImageTensor:
 
     The data may contain an extra dimension for batching (the default).
     """
+
     tensor_data: np.ndarray
     padding: Tuple[float, float, float, float]
     original_size: Tuple[int, int]
@@ -27,6 +29,7 @@ class Rect:
     Normalized indicates whether properties are relative to image size
     (i.e. value range is [0,1]).
     """
+
     x_center: float
     y_center: float
     width: float
@@ -40,22 +43,17 @@ class Rect:
         w, h = self.width, self.height
         return (w, h) if self.normalized else (int(w), int(h))
 
-    def scaled(
-        self, size: Tuple[float, float], normalize: bool = False
-    ) -> 'Rect':
+    def scaled(self, size: Tuple[float, float], normalize: bool = False) -> 'Rect':
         """Return a scaled version or self, if not normalized."""
         if self.normalized == normalize:
             return self
         sx, sy = size
         if normalize:
             sx, sy = 1 / sx, 1 / sy
-        return Rect(self.x_center * sx, self.y_center * sy,
-                    self.width * sx, self.height * sy,
-                    self.rotation, normalized=False)
+        return Rect(self.x_center * sx, self.y_center * sy, self.width * sx, self.height * sy, self.rotation, normalized=False)
 
     def points(self) -> np.ndarray:
-        """Return the corners of the box as a list of tuples `[(x, y), ...]`
-        """
+        """Return the corners of the box as a list of tuples `[(x, y), ...]`"""
         x, y = self.x_center, self.y_center
         w, h = self.width / 2, self.height / 2
         pts = [(x - w, y - h), (x + w, y - h), (x + w, y + h), (x - w, y + h)]
@@ -74,6 +72,7 @@ class BBox:
     The bounds can be relative to image size (normalized, range [0,1]) or
     absolute (i.e. pixel-) coordinates.
     """
+
     xmin: float
     ymin: float
     xmax: float
@@ -151,6 +150,7 @@ class BBox:
 @dataclass
 class Landmark:
     """An object landmark (3d point) detected by a model"""
+
     x: float
     y: float
     z: float
@@ -171,6 +171,7 @@ class Detection(object):
         nosetip = detection[3]
     ```
     """
+
     def __init__(self, data: np.ndarray, score: float) -> None:
         """Initialize a detection from data points.
 

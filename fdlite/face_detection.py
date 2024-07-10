@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # Copyright © 2021 Patrick Levin
 # SPDX-Identifier: MIT
-u"""BlazeFace face detection.
+"""BlazeFace face detection.
 
 Ported from Google® MediaPipe (https://google.github.io/mediapipe/).
 
@@ -16,6 +16,7 @@ Reference:
     Workshop on Computer Vision for Augmented and
     Virtual Reality, Long Beach, CA, USA, 2019.
 """
+
 import numpy as np
 import os
 import onnxruntime as ort
@@ -50,7 +51,7 @@ SSD_OPTIONS_FRONT = {
     'anchor_offset_x': 0.5,
     'anchor_offset_y': 0.5,
     'strides': [8, 16, 16, 16],
-    'interpolated_scale_aspect_ratio': 1.0
+    'interpolated_scale_aspect_ratio': 1.0,
 }
 
 # (reference: modules/face_detection/face_detection_back_desktop_live.pbtxt)
@@ -61,7 +62,7 @@ SSD_OPTIONS_BACK = {
     'anchor_offset_x': 0.5,
     'anchor_offset_y': 0.5,
     'strides': [16, 32, 32, 32],
-    'interpolated_scale_aspect_ratio': 1.0
+    'interpolated_scale_aspect_ratio': 1.0,
 }
 
 # (reference: modules/face_detection/face_detection_short_range_common.pbtxt)
@@ -72,7 +73,7 @@ SSD_OPTIONS_SHORT = {
     'anchor_offset_x': 0.5,
     'anchor_offset_y': 0.5,
     'strides': [8, 16, 16, 16],
-    'interpolated_scale_aspect_ratio': 1.0
+    'interpolated_scale_aspect_ratio': 1.0,
 }
 
 # (reference: modules/face_detection/face_detection_full_range_common.pbtxt)
@@ -83,7 +84,7 @@ SSD_OPTIONS_FULL = {
     'anchor_offset_x': 0.5,
     'anchor_offset_y': 0.5,
     'strides': [4],
-    'interpolated_scale_aspect_ratio': 0.0
+    'interpolated_scale_aspect_ratio': 0.0,
 }
 
 
@@ -97,6 +98,7 @@ class FaceIndex(IntEnum):
             return x, y
     ```
     """
+
     LEFT_EYE = 0
     RIGHT_EYE = 1
     NOSE_TIP = 2
@@ -122,6 +124,7 @@ class FaceDetectionModel(IntEnum):
             mid-ranges (i.e. faces within 5 metres from the camera)
             this model is up ~30% faster than `FULL` when run on the CPU
     """
+
     FRONT_CAMERA = 0
     BACK_CAMERA = 1
     SHORT = 2
@@ -157,11 +160,8 @@ class FaceDetection:
     Raises:
         InvalidEnumError: `model_type` contains an unsupported value
     """
-    def __init__(
-        self,
-        model_type: FaceDetectionModel = FaceDetectionModel.FRONT_CAMERA,
-        model_path: Optional[str] = None
-    ) -> None:
+
+    def __init__(self, model_type: FaceDetectionModel = FaceDetectionModel.FRONT_CAMERA, model_path: Optional[str] = None) -> None:
         ssd_opts = {}
         if model_path is None:
             my_path = os.path.abspath(__file__)
@@ -187,11 +187,7 @@ class FaceDetection:
         self.score_name = self.session.get_outputs()[1].name
         self.anchors = _ssd_generate_anchors(ssd_opts)
 
-    def __call__(
-        self,
-        image: Union[Image, np.ndarray, str],
-        roi: Optional[Rect] = None
-    ) -> List[Detection]:
+    def __call__(self, image: Union[Image, np.ndarray, str], roi: Optional[Rect] = None) -> List[Detection]:
         """Run inference and return detections from a given image
 
         Args:
@@ -205,12 +201,7 @@ class FaceDetection:
             (list) List of detection results with relative coordinates.
         """
         height, width = self.input_shape[1:3]
-        image_data = image_to_tensor(
-            image,
-            roi,
-            output_size=(width, height),
-            keep_aspect_ratio=True,
-            output_range=(-1, 1))
+        image_data = image_to_tensor(image, roi, output_size=(width, height), keep_aspect_ratio=True, output_range=(-1, 1))
         input_data = image_data.tensor_data[np.newaxis]
         inputs = {self.input_name: input_data}
         outputs = self.session.run(None, inputs)
@@ -219,12 +210,8 @@ class FaceDetection:
         boxes = self._decode_boxes(raw_boxes)
         scores = self._get_sigmoid_scores(raw_scores)
         detections = FaceDetection._convert_to_detections(boxes, scores)
-        pruned_detections = non_maximum_suppression(
-                                detections,
-                                MIN_SUPPRESSION_THRESHOLD, MIN_SCORE,
-                                weighted=True)
-        detections = detection_letterbox_removal(
-            pruned_detections, image_data.padding)
+        pruned_detections = non_maximum_suppression(detections, MIN_SUPPRESSION_THRESHOLD, MIN_SCORE, weighted=True)
+        detections = detection_letterbox_removal(pruned_detections, image_data.padding)
         return detections
 
     def _decode_boxes(self, raw_boxes: np.ndarray) -> np.ndarray:
@@ -260,13 +247,11 @@ class FaceDetection:
         return sigmoid(raw_scores)
 
     @staticmethod
-    def _convert_to_detections(
-        boxes: np.ndarray,
-        scores: np.ndarray
-    ) -> List[Detection]:
+    def _convert_to_detections(boxes: np.ndarray, scores: np.ndarray) -> List[Detection]:
         """Apply detection threshold, filter invalid boxes and return
         detection instance.
         """
+
         # return whether width and height are positive
         def is_valid(box: np.ndarray) -> bool:
             return np.all(box[1] > box[0])
@@ -274,9 +259,8 @@ class FaceDetection:
         score_above_threshold = scores > MIN_SCORE
         filtered_boxes = boxes[np.argwhere(score_above_threshold)[:, 1], :]
         filtered_scores = scores[score_above_threshold]
-        return [Detection(box, score)
-                for box, score in zip(filtered_boxes, filtered_scores)
-                if is_valid(box)]
+        return [Detection(box, score) for box, score in zip(filtered_boxes, filtered_scores) if is_valid(box)]
+
 
 def _ssd_generate_anchors(opts: dict) -> np.ndarray:
     """This is a trimmed down version of the C++ code; all irrelevant parts
@@ -296,8 +280,7 @@ def _ssd_generate_anchors(opts: dict) -> np.ndarray:
     while layer_id < num_layers:
         last_same_stride_layer = layer_id
         repeats = 0
-        while (last_same_stride_layer < num_layers and
-               strides[last_same_stride_layer] == strides[layer_id]):
+        while last_same_stride_layer < num_layers and strides[last_same_stride_layer] == strides[layer_id]:
             last_same_stride_layer += 1
             # aspect_ratios are added twice per iteration
             repeats += 2 if interpolated_scale_aspect_ratio == 1.0 else 1

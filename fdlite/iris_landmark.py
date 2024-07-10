@@ -14,6 +14,7 @@ from fdlite.render import landmarks_to_render_data
 from fdlite.transform import bbox_from_landmarks, bbox_to_roi, image_to_tensor
 from fdlite.transform import project_landmarks, SizeMode
 from fdlite.types import Landmark, Rect
+
 """Iris landmark detection model.
 
 Ported from Google® MediaPipe (https://google.github.io/mediapipe/).
@@ -48,67 +49,203 @@ NUM_IRIS_LANDMARKS = 5
 # eye contour default visualisation settings
 # (from iris_and_depth_renderer_cpu.pbtxt)
 EYE_LANDMARK_CONNECTIONS = [
-    (0, 1), (1, 2), (2, 3), (3, 4), (4, 5),
-    (5, 6), (6, 7), (7, 8), (9, 10), (10, 11),
-    (11, 12), (12, 13), (13, 14), (0, 9), (8, 14)
+    (0, 1),
+    (1, 2),
+    (2, 3),
+    (3, 4),
+    (4, 5),
+    (5, 6),
+    (6, 7),
+    (7, 8),
+    (9, 10),
+    (10, 11),
+    (11, 12),
+    (12, 13),
+    (13, 14),
+    (0, 9),
+    (8, 14),
 ]
 MAX_EYE_LANDMARK = len(EYE_LANDMARK_CONNECTIONS)
 
 # mapping from left eye contour index to face landmark index
 LEFT_EYE_TO_FACE_LANDMARK_INDEX = [
     # eye lower contour
-    33, 7, 163, 144, 145, 153, 154, 155, 133,
+    33,
+    7,
+    163,
+    144,
+    145,
+    153,
+    154,
+    155,
+    133,
     # eye upper contour excluding corners
-    246, 161, 160, 159, 158, 157, 173,
+    246,
+    161,
+    160,
+    159,
+    158,
+    157,
+    173,
     # halo x2 lower contour
-    130, 25, 110, 24, 23, 22, 26, 112, 243,
+    130,
+    25,
+    110,
+    24,
+    23,
+    22,
+    26,
+    112,
+    243,
     # halo x2 upper contour excluding corners
-    247, 30, 29, 27, 28, 56, 190,
+    247,
+    30,
+    29,
+    27,
+    28,
+    56,
+    190,
     # halo x3 lower contour
-    226, 31, 228, 229, 230, 231, 232, 233, 244,
+    226,
+    31,
+    228,
+    229,
+    230,
+    231,
+    232,
+    233,
+    244,
     # halo x3 upper contour excluding corners
-    113, 225, 224, 223, 222, 221, 189,
+    113,
+    225,
+    224,
+    223,
+    222,
+    221,
+    189,
     # halo x4 upper contour (no upper due to mesh structure)
     # or eyebrow inner contour
-    35, 124, 46, 53, 52, 65,
+    35,
+    124,
+    46,
+    53,
+    52,
+    65,
     # halo x5 lower contour
-    143, 111, 117, 118, 119, 120, 121, 128, 245,
+    143,
+    111,
+    117,
+    118,
+    119,
+    120,
+    121,
+    128,
+    245,
     # halo x5 upper contour excluding corners or eyebrow outer contour
-    156, 70, 63, 105, 66, 107, 55, 193,
+    156,
+    70,
+    63,
+    105,
+    66,
+    107,
+    55,
+    193,
 ]
 
 # mapping from right eye contour index to face landmark index
 RIGHT_EYE_TO_FACE_LANDMARK_INDEX = [
     # eye lower contour
-    263, 249, 390, 373, 374, 380, 381, 382, 362,
+    263,
+    249,
+    390,
+    373,
+    374,
+    380,
+    381,
+    382,
+    362,
     # eye upper contour excluding corners
-    466, 388, 387, 386, 385, 384, 398,
+    466,
+    388,
+    387,
+    386,
+    385,
+    384,
+    398,
     # halo x2 lower contour
-    359, 255, 339, 254, 253, 252, 256, 341, 463,
+    359,
+    255,
+    339,
+    254,
+    253,
+    252,
+    256,
+    341,
+    463,
     # halo x2 upper contour excluding corners
-    467, 260, 259, 257, 258, 286, 414,
+    467,
+    260,
+    259,
+    257,
+    258,
+    286,
+    414,
     # halo x3 lower contour
-    446, 261, 448, 449, 450, 451, 452, 453, 464,
+    446,
+    261,
+    448,
+    449,
+    450,
+    451,
+    452,
+    453,
+    464,
     # halo x3 upper contour excluding corners
-    342, 445, 444, 443, 442, 441, 413,
+    342,
+    445,
+    444,
+    443,
+    442,
+    441,
+    413,
     # halo x4 upper contour (no upper due to mesh structure)
     # or eyebrow inner contour
-    265, 353, 276, 283, 282, 295,
+    265,
+    353,
+    276,
+    283,
+    282,
+    295,
     # halo x5 lower contour
-    372, 340, 346, 347, 348, 349, 350, 357, 465,
+    372,
+    340,
+    346,
+    347,
+    348,
+    349,
+    350,
+    357,
+    465,
     # halo x5 upper contour excluding corners or eyebrow outer contour
-    383, 300, 293, 334, 296, 336, 285, 417,
+    383,
+    300,
+    293,
+    334,
+    296,
+    336,
+    285,
+    417,
 ]
 
 # 35mm camera sensor diagonal (36mm * 24mm)
-SENSOR_DIAGONAL_35MM = np.math.sqrt(36 ** 2 + 24 ** 2)
+SENSOR_DIAGONAL_35MM = np.math.sqrt(36**2 + 24**2)
 # average human iris size
 IRIS_SIZE_IN_MM = 11.8
 
 
 class IrisIndex(IntEnum):
-    """Index into iris landmarks as returned by `IrisLandmark`
-    """
+    """Index into iris landmarks as returned by `IrisLandmark`"""
+
     CENTER = 0
     LEFT = 1
     TOP = 2
@@ -124,6 +261,7 @@ class IrisResults:
 
     iris data is 5 keypoints
     """
+
     contour: List[Landmark]
     iris: List[Landmark]
 
@@ -133,10 +271,7 @@ class IrisResults:
         return self.contour[:MAX_EYE_LANDMARK]
 
 
-def iris_roi_from_face_landmarks(
-    face_landmarks: Sequence[Landmark],
-    image_size: Tuple[int, int]
-) -> Tuple[Rect, Rect]:
+def iris_roi_from_face_landmarks(face_landmarks: Sequence[Landmark], image_size: Tuple[int, int]) -> Tuple[Rect, Rect]:
     """Extract iris landmark detection ROIs from face landmarks.
 
     Use this function to get the ROI for the left and right eye. The resulting
@@ -170,22 +305,16 @@ def iris_roi_from_face_landmarks(
         `IrisDetetion` together with the original image to detect iris
         landmarks.
     """
-    left_eye_landmarks = (
-        face_landmarks[LEFT_EYE_START],
-        face_landmarks[LEFT_EYE_END])
+    left_eye_landmarks = (face_landmarks[LEFT_EYE_START], face_landmarks[LEFT_EYE_END])
     bbox = bbox_from_landmarks(left_eye_landmarks)
     rotation_keypoints = [(point.x, point.y) for point in left_eye_landmarks]
     w, h = image_size
-    left_eye_roi = bbox_to_roi(
-        bbox, (w, h), rotation_keypoints, ROI_SCALE, SizeMode.SQUARE_LONG)
+    left_eye_roi = bbox_to_roi(bbox, (w, h), rotation_keypoints, ROI_SCALE, SizeMode.SQUARE_LONG)
 
-    right_eye_landmarks = (
-        face_landmarks[RIGHT_EYE_START],
-        face_landmarks[RIGHT_EYE_END])
+    right_eye_landmarks = (face_landmarks[RIGHT_EYE_START], face_landmarks[RIGHT_EYE_END])
     bbox = bbox_from_landmarks(right_eye_landmarks)
     rotation_keypoints = [(point.x, point.y) for point in right_eye_landmarks]
-    right_eye_roi = bbox_to_roi(
-        bbox, (w, h), rotation_keypoints, ROI_SCALE, SizeMode.SQUARE_LONG)
+    right_eye_roi = bbox_to_roi(bbox, (w, h), rotation_keypoints, ROI_SCALE, SizeMode.SQUARE_LONG)
 
     return left_eye_roi, right_eye_roi
 
@@ -195,7 +324,7 @@ def eye_landmarks_to_render_data(
     landmark_color: Color,
     connection_color: Color,
     thickness: float = 2.0,
-    output: Optional[List[Annotation]] = None
+    output: Optional[List[Annotation]] = None,
 ) -> List[Annotation]:
     """Convert eye contour to render data.
 
@@ -224,9 +353,14 @@ def eye_landmarks_to_render_data(
         All positions are normalized, e.g. with a value range of [0, 1].
     """
     render_data = landmarks_to_render_data(
-        eye_contour[0:MAX_EYE_LANDMARK], EYE_LANDMARK_CONNECTIONS,
-        landmark_color, connection_color, thickness,
-        normalized_positions=True, output=output)
+        eye_contour[0:MAX_EYE_LANDMARK],
+        EYE_LANDMARK_CONNECTIONS,
+        landmark_color,
+        connection_color,
+        thickness,
+        normalized_positions=True,
+        output=output,
+    )
     return render_data
 
 
@@ -236,7 +370,7 @@ def iris_landmarks_to_render_data(
     oval_color: Optional[Color] = None,
     thickness: float = 1.0,
     image_size: Tuple[int, int] = (-1, -1),
-    output: Optional[List[Annotation]] = None
+    output: Optional[List[Annotation]] = None,
 ) -> List[Annotation]:
     """Convert iris landmarks to render data.
 
@@ -279,16 +413,11 @@ def iris_landmarks_to_render_data(
         radius_h = iris_radius / width
         radius_v = iris_radius / height
         iris_center = iris_landmarks[IrisIndex.CENTER]
-        oval = RectOrOval(iris_center.x - radius_h, iris_center.y - radius_v,
-                          iris_center.x + radius_h, iris_center.y + radius_v,
-                          oval=True)
-        annotations.append(Annotation([oval], normalized_positions=True,
-                                      thickness=thickness, color=oval_color))
+        oval = RectOrOval(iris_center.x - radius_h, iris_center.y - radius_v, iris_center.x + radius_h, iris_center.y + radius_v, oval=True)
+        annotations.append(Annotation([oval], normalized_positions=True, thickness=thickness, color=oval_color))
     if landmark_color is not None:
         points = [Point(pt.x, pt.y) for pt in iris_landmarks]
-        annotations.append(Annotation(points, normalized_positions=True,
-                                      thickness=thickness,
-                                      color=landmark_color))
+        annotations.append(Annotation(points, normalized_positions=True, thickness=thickness, color=landmark_color))
     if output is None:
         output = annotations
     else:
@@ -297,9 +426,7 @@ def iris_landmarks_to_render_data(
 
 
 def update_face_landmarks_with_iris_results(
-    face_landmarks: Sequence[Landmark],
-    iris_data_left: IrisResults,
-    iris_data_right: IrisResults
+    face_landmarks: Sequence[Landmark], iris_data_left: IrisResults, iris_data_right: IrisResults
 ) -> List[Landmark]:
     """Update face landmarks with iris detection results.
 
@@ -337,9 +464,7 @@ def update_face_landmarks_with_iris_results(
 
 
 def iris_depth_in_mm_from_landmarks(
-    image_or_focal_length: Union[Image, Tuple[int, int, int, int]],
-    iris_data_left: IrisResults,
-    iris_data_right: IrisResults
+    image_or_focal_length: Union[Image, Tuple[int, int, int, int]], iris_data_left: IrisResults, iris_data_right: IrisResults
 ) -> Tuple[float, float]:
     """Calculate the distances to the left- and right eye from image meta data
     and iris landmarks.
@@ -390,11 +515,10 @@ def iris_depth_in_mm_from_landmarks(
     left_landmarks, right_landmarks = iris_data_left.iris, iris_data_right.iris
     left_iris_size = _get_iris_diameter(left_landmarks, pixel_size)
     right_iris_size = _get_iris_diameter(right_landmarks, pixel_size)
-    left_depth_mm = _get_iris_depth(left_landmarks, focal_len_px,
-                                    left_iris_size, pixel_size)
-    right_depth_mm = _get_iris_depth(right_landmarks, focal_len_px,
-                                     right_iris_size, pixel_size)
+    left_depth_mm = _get_iris_depth(left_landmarks, focal_len_px, left_iris_size, pixel_size)
+    right_depth_mm = _get_iris_depth(right_landmarks, focal_len_px, right_iris_size, pixel_size)
     return left_depth_mm, right_depth_mm
+
 
 class IrisLandmark:
     """Model for iris landmark detection from the image of an eye.
@@ -417,6 +541,7 @@ class IrisLandmark:
     Raises:
         ModelDataError: `model_path` refers to an incompatible detection model
     """
+
     def __init__(self, model_path: Optional[str] = None) -> None:
         if model_path is None:
             my_path = os.path.abspath(__file__)
@@ -430,27 +555,20 @@ class IrisLandmark:
 
         eye_shape = self.session.get_outputs()[0].shape
         if eye_shape[-1] != NUM_DIMS * NUM_EYE_LANDMARKS:
-            raise ModelDataError('unexpected number of eye landmarks: '
-                                 f'{eye_shape[-1]}')
+            raise ModelDataError('unexpected number of eye landmarks: ' f'{eye_shape[-1]}')
         iris_shape = self.session.get_outputs()[1].shape
         if iris_shape[-1] != NUM_DIMS * NUM_IRIS_LANDMARKS:
-            raise ModelDataError('unexpected number of iris landmarks: '
-                                 f'{iris_shape[-1]}')
+            raise ModelDataError('unexpected number of iris landmarks: ' f'{iris_shape[-1]}')
 
-    def __call__(
-        self,
-        image: Union[Image, np.ndarray, str],
-        roi: Optional[Rect] = None,
-        is_right_eye: bool = False
-    ) -> IrisResults:
+    def __call__(self, image: Union[Image, np.ndarray, str], roi: Optional[Rect] = None, is_right_eye: bool = False) -> IrisResults:
         height, width = self.input_shape[1:3]
         image_data = image_to_tensor(
             image,
             roi,
             output_size=(width, height),
-            keep_aspect_ratio=True,     # equivalent to scale_mode=FIT
-            output_range=(0, 1),        # see iris_landmark_cpu.pbtxt
-            flip_horizontal=is_right_eye
+            keep_aspect_ratio=True,  # equivalent to scale_mode=FIT
+            output_range=(0, 1),  # see iris_landmark_cpu.pbtxt
+            flip_horizontal=is_right_eye,
         )
         input_data = image_data.tensor_data[np.newaxis]
         inputs = {self.input_name: input_data}
@@ -463,19 +581,20 @@ class IrisLandmark:
             image_size=image_data.original_size,
             padding=image_data.padding,
             roi=roi,
-            flip_horizontal=is_right_eye)
+            flip_horizontal=is_right_eye,
+        )
         iris_landmarks = project_landmarks(
             raw_iris_landmarks,
             tensor_size=(width, height),
             image_size=image_data.original_size,
             padding=image_data.padding,
             roi=roi,
-            flip_horizontal=is_right_eye)
+            flip_horizontal=is_right_eye,
+        )
         return IrisResults(eye_contour, iris_landmarks)
 
-def _get_iris_diameter(
-    iris_landmarks: Sequence[Landmark], image_size: Tuple[int, int]
-) -> float:
+
+def _get_iris_diameter(iris_landmarks: Sequence[Landmark], image_size: Tuple[int, int]) -> float:
     """Calculate the iris diameter in pixels"""
     width, height = image_size
 
@@ -483,24 +602,17 @@ def _get_iris_diameter(
         x0, y0, x1, y1 = a.x * width, a.y * height, b.x * width, b.y * height
         return np.math.sqrt((x0 - x1) ** 2 + (y0 - y1) ** 2)
 
-    iris_size_horiz = get_landmark_depth(iris_landmarks[IrisIndex.LEFT],
-                                         iris_landmarks[IrisIndex.RIGHT])
-    iris_size_vert = get_landmark_depth(iris_landmarks[IrisIndex.TOP],
-                                        iris_landmarks[IrisIndex.BOTTOM])
+    iris_size_horiz = get_landmark_depth(iris_landmarks[IrisIndex.LEFT], iris_landmarks[IrisIndex.RIGHT])
+    iris_size_vert = get_landmark_depth(iris_landmarks[IrisIndex.TOP], iris_landmarks[IrisIndex.BOTTOM])
     return (iris_size_vert + iris_size_horiz) / 2
 
 
-def _get_iris_depth(
-    iris_landmarks: Sequence[Landmark],
-    focal_length_mm: float,
-    iris_size_px: float,
-    image_size: Tuple[int, int]
-) -> float:
+def _get_iris_depth(iris_landmarks: Sequence[Landmark], focal_length_mm: float, iris_size_px: float, image_size: Tuple[int, int]) -> float:
     """Calculate iris depth in mm from landmarks and lens focal length in mm"""
     width, height = image_size
     center = iris_landmarks[IrisIndex.CENTER]
     x0, y0 = width / 2, height / 2
     x1, y1 = center.x * width, center.y * height
     y = np.math.sqrt((x0 - x1) ** 2 + (y0 - y1) ** 2)
-    x = np.math.sqrt(focal_length_mm ** 2 + y ** 2)
+    x = np.math.sqrt(focal_length_mm**2 + y**2)
     return IRIS_SIZE_IN_MM * x / iris_size_px

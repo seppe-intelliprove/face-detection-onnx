@@ -8,6 +8,7 @@ from PIL import Image
 from PIL.Image import Image as PILImage, Resampling, Transform, Transpose
 from fdlite import ArgumentError, CoordinateRangeError, InvalidEnumError
 from fdlite.types import BBox, Detection, ImageTensor, Landmark, Rect
+
 """Functions for data transformations that are used by the detection models"""
 
 
@@ -16,8 +17,8 @@ def image_to_tensor(
     roi: Optional[Rect] = None,
     output_size: Optional[Tuple[int, int]] = None,
     keep_aspect_ratio: bool = False,
-    output_range: Tuple[float, float] = (0., 1.),
-    flip_horizontal: bool = False
+    output_range: Tuple[float, float] = (0.0, 1.0),
+    flip_horizontal: bool = False,
 ) -> ImageTensor:
     """Load an image into an array and return data, image size, and padding.
 
@@ -57,20 +58,22 @@ def image_to_tensor(
     roi = roi.scaled(image_size)
     if output_size is None:
         output_size = (int(roi.size[0]), int(roi.size[1]))
-    width, height = (roi.size if keep_aspect_ratio      # type: ignore[misc]
-                     else output_size)
+    width, height = (
+        roi.size
+        if keep_aspect_ratio  # type: ignore[misc]
+        else output_size
+    )
     src_points = roi.points()
-    dst_points = [(0., 0.), (width, 0.), (width, height), (0., height)]
+    dst_points = [(0.0, 0.0), (width, 0.0), (width, height), (0.0, height)]
     coeffs = _perspective_transform_coeff(src_points, dst_points)
-    roi_image = img.transform(size=(width, height), method=Transform.PERSPECTIVE,
-                              data=coeffs, resample=Resampling.BILINEAR)
+    roi_image = img.transform(size=(width, height), method=Transform.PERSPECTIVE, data=coeffs, resample=Resampling.BILINEAR)
     # free some memory - we don't need the temporary image anymore
     if img != image:
         img.close()
-    pad_x, pad_y = 0., 0.
+    pad_x, pad_y = 0.0, 0.0
     if keep_aspect_ratio:
         # perform letterboxing if required
-        out_aspect = output_size[1] / output_size[0]    # type: ignore[index]
+        out_aspect = output_size[1] / output_size[0]  # type: ignore[index]
         roi_aspect = roi.height / roi.width
         new_width, new_height = int(roi.width), int(roi.height)
         if out_aspect > roi_aspect:
@@ -82,8 +85,8 @@ def image_to_tensor(
         if new_width != int(roi.width) or new_height != int(roi.height):
             pad_h, pad_v = int(pad_x * new_width), int(pad_y * new_height)
             roi_image = roi_image.transform(
-                size=(new_width, new_height), method=Transform.EXTENT,
-                data=(-pad_h, -pad_v, new_width - pad_h, new_height - pad_v))
+                size=(new_width, new_height), method=Transform.EXTENT, data=(-pad_h, -pad_v, new_width - pad_h, new_height - pad_v)
+            )
         roi_image = roi_image.resize(output_size, resample=Resampling.BILINEAR)
     if flip_horizontal:
         roi_image = roi_image.transpose(method=Transpose.FLIP_LEFT_RIGHT)
@@ -92,9 +95,7 @@ def image_to_tensor(
     tensor_data = np.asarray(roi_image, dtype=np.float32)
     tensor_data *= (max_val - min_val) / 255
     tensor_data += min_val
-    return ImageTensor(tensor_data,
-                       padding=(pad_x, pad_y, pad_x, pad_y),
-                       original_size=image_size)
+    return ImageTensor(tensor_data, padding=(pad_x, pad_y, pad_x, pad_y), original_size=image_size)
 
 
 def sigmoid(data: np.ndarray) -> np.ndarray:
@@ -109,10 +110,7 @@ def sigmoid(data: np.ndarray) -> np.ndarray:
     return 1 / (1 + np.exp(-data))
 
 
-def detection_letterbox_removal(
-    detections: Sequence[Detection],
-    padding: Tuple[float, float, float, float]
-) -> List[Detection]:
+def detection_letterbox_removal(detections: Sequence[Detection], padding: Tuple[float, float, float, float]) -> List[Detection]:
     """Return detections with bounding box and keypoints adjusted for padding
 
     Args:
@@ -145,6 +143,7 @@ class SizeMode(IntEnum):
 
     SQUARE_SHORT - make square using `min(width, height)`
     """
+
     DEFAULT = 0
     SQUARE_LONG = 1
     SQUARE_SHORT = 2
@@ -154,8 +153,8 @@ def bbox_to_roi(
     bbox: BBox,
     image_size: Tuple[int, int],
     rotation_keypoints: Optional[Sequence[Tuple[float, float]]] = None,
-    scale: Tuple[float, float] = (1., 1.),
-    size_mode: SizeMode = SizeMode.DEFAULT
+    scale: Tuple[float, float] = (1.0, 1.0),
+    size_mode: SizeMode = SizeMode.DEFAULT,
 ) -> Rect:
     """Convert a normalized bounding box into a ROI with optional scaling and
     and rotation.
@@ -199,7 +198,7 @@ def bbox_to_roi(
     cx, cy = bbox.xmin + bbox.width / 2, bbox.ymin + bbox.height / 2
     # calculate rotation of required
     if rotation_keypoints is None or len(rotation_keypoints) < 2:
-        return Rect(cx, cy, width, height, rotation=0., normalized=True)
+        return Rect(cx, cy, width, height, rotation=0.0, normalized=True)
     x0, y0 = rotation_keypoints[0]
     x1, y1 = rotation_keypoints[1]
     angle = -np.math.atan2(y0 - y1, x1 - x0)
@@ -226,8 +225,8 @@ def bbox_from_landmarks(landmarks: Sequence[Landmark]) -> BBox:
     """
     if len(landmarks) < 2:
         raise ArgumentError('landmarks must contain at least 2 items')
-    xmin, ymin = 999999., 999999.
-    xmax, ymax = -999999., -999999.
+    xmin, ymin = 999999.0, 999999.0
+    xmax, ymax = -999999.0, -999999.0
     for landmark in landmarks:
         x, y = landmark.x, landmark.y
         xmin, ymin = min(xmin, x), min(ymin, y)
@@ -242,7 +241,7 @@ def project_landmarks(
     image_size: Tuple[int, int],
     padding: Tuple[float, float, float, float],
     roi: Optional[Rect],
-    flip_horizontal: bool = False
+    flip_horizontal: bool = False,
 ) -> List[Landmark]:
     """Transform landmarks or raw detection results from tensor coordinates
     into normalized image coordinates, removing letterboxing if required.
@@ -284,7 +283,7 @@ def project_landmarks(
         left, top, right, bottom = padding
         h_scale = 1 - (left + right)
         v_scale = 1 - (top + bottom)
-        points -= (left, top, 0.)
+        points -= (left, top, 0.0)
         points /= (h_scale, v_scale, h_scale)
     # convert to landmarks if coordinate system doesn't change
     if roi is None:
@@ -292,7 +291,7 @@ def project_landmarks(
     # coordinate system transformation from ROI- to image space
     norm_roi = roi.scaled(image_size, normalize=True)
     sin, cos = np.math.sin(roi.rotation), np.math.cos(roi.rotation)
-    matrix = np.array([[cos, sin, 0.], [-sin, cos, 0.], [1., 1., 1.]])
+    matrix = np.array([[cos, sin, 0.0], [-sin, cos, 0.0], [1.0, 1.0, 1.0]])
     points -= (0.5, 0.5, 0.0)
     rotated = np.matmul(points * (1, 1, 0), matrix)
     points *= (0, 0, 1)
@@ -302,10 +301,7 @@ def project_landmarks(
     return [Landmark(x, y, z) for (x, y, z) in points]
 
 
-def _perspective_transform_coeff(
-    src_points: np.ndarray,
-    dst_points: np.ndarray
-) -> np.ndarray:
+def _perspective_transform_coeff(src_points: np.ndarray, dst_points: np.ndarray) -> np.ndarray:
     """Calculate coefficients for a perspective transform given source- and
     target points. Note: argument order is reversed for more intuitive
     usage.
@@ -315,10 +311,7 @@ def _perspective_transform_coeff(
     """
     matrix = []
     for (x, y), (X, Y) in zip(dst_points, src_points):
-        matrix.extend([
-            [x, y, 1., 0., 0., 0., -X*x, -X*y],
-            [0., 0., 0., x, y, 1., -Y*x, -Y*y]
-        ])
+        matrix.extend([[x, y, 1.0, 0.0, 0.0, 0.0, -X * x, -X * y], [0.0, 0.0, 0.0, x, y, 1.0, -Y * x, -Y * y]])
     A = np.array(matrix, dtype=np.float32)
     B = np.array(src_points, dtype=np.float32).reshape(8)
     return np.linalg.solve(A, B)
@@ -335,11 +328,7 @@ def _normalize_image(image: Union[PILImage, np.ndarray, str]) -> PILImage:
     return image
 
 
-def _select_roi_size(
-    bbox: BBox,
-    image_size: Tuple[int, int],
-    size_mode: SizeMode
-) -> Tuple[float, float]:
+def _select_roi_size(bbox: BBox, image_size: Tuple[int, int], size_mode: SizeMode) -> Tuple[float, float]:
     """Return the size of an ROI based on bounding box, image size and mode"""
     abs_box = bbox.absolute(image_size)
     width, height = abs_box.width, abs_box.height

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # Copyright © 2021 Patrick Levin
 # SPDX-Identifier: MIT
-u"""EXIF utilities for extracting focal length for distance calculation.
+"""EXIF utilities for extracting focal length for distance calculation.
 
 The module contains the function `get_focal_length` to extract focal length
 data from image EXIF data.
@@ -12,6 +12,7 @@ factor is read from a database of camera models. The function loads the
 database lazily, e.g. if input data always contains the required information,
 no data will ever be loaded.
 """
+
 import csv
 import os
 from enum import IntEnum
@@ -25,6 +26,7 @@ _MODEL_DATABASE: Dict[str, float] = {}
 
 class ExifTag(IntEnum):
     """EXIF tag indexes: see https://exiftool.org/TagNames/EXIF.html"""
+
     MODEL = 272
     ORIENTATION = 274
     FOCAL_LENGTH_IN_MM = 37386
@@ -34,7 +36,7 @@ class ExifTag(IntEnum):
 
 
 def get_focal_length(image: Image) -> Optional[Tuple[int, int, int, int]]:
-    u"""Extract focal length data from EXIF data.
+    """Extract focal length data from EXIF data.
 
     The function will try to calculate missing data (e.g. focal length in
     35mm) using a camera model database. The database will be loaded once

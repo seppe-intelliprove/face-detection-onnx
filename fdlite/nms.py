@@ -4,14 +4,12 @@
 import numpy as np
 from typing import List, Optional, Tuple
 from fdlite.types import BBox, Detection
+
 """Implementation of non-maximum-suppression (NMS) for detections."""
 
 
 def non_maximum_suppression(
-    detections: List[Detection],
-    min_suppression_threshold: float,
-    min_score: Optional[float],
-    weighted: bool = False
+    detections: List[Detection], min_suppression_threshold: float, min_score: Optional[float], weighted: bool = False
 ) -> List[Detection]:
     """Return only significant detections.
 
@@ -30,28 +28,23 @@ def non_maximum_suppression(
     indexed_scores = [(n, score) for n, score in enumerate(scores)]
     indexed_scores = sorted(indexed_scores, key=lambda p: p[1], reverse=True)
     if weighted:
-        return _weighted_non_maximum_suppression(
-            indexed_scores, detections, min_suppression_threshold, min_score)
+        return _weighted_non_maximum_suppression(indexed_scores, detections, min_suppression_threshold, min_score)
     else:
-        return _non_maximum_suppression(
-            indexed_scores, detections, min_suppression_threshold, min_score)
+        return _non_maximum_suppression(indexed_scores, detections, min_suppression_threshold, min_score)
 
 
 def _overlap_similarity(box1: BBox, box2: BBox) -> float:
     """Return intersection-over-union similarity of two bounding boxes"""
     intersection = box1.intersect(box2)
     if intersection is None:
-        return 0.
+        return 0.0
     intersect_area = intersection.area
     denominator = box1.area + box2.area - intersect_area
-    return intersect_area / denominator if denominator > 0. else 0.
+    return intersect_area / denominator if denominator > 0.0 else 0.0
 
 
 def _non_maximum_suppression(
-    indexed_scores: List[Tuple[int, float]],
-    detections: List[Detection],
-    min_suppression_threshold: float,
-    min_score: Optional[float]
+    indexed_scores: List[Tuple[int, float]], detections: List[Detection], min_suppression_threshold: float, min_score: Optional[float]
 ) -> List[Detection]:
     """Return only most significant detections"""
     kept_boxes: List[BBox] = []
@@ -75,10 +68,7 @@ def _non_maximum_suppression(
 
 
 def _weighted_non_maximum_suppression(
-    indexed_scores: List[Tuple[int, float]],
-    detections: List[Detection],
-    min_suppression_threshold: float,
-    min_score: Optional[float]
+    indexed_scores: List[Tuple[int, float]], detections: List[Detection], min_suppression_threshold: float, min_score: Optional[float]
 ) -> List[Detection]:
     """Return only most significant detections; merge similar detections"""
     remaining_indexed_scores = list(indexed_scores)
@@ -96,7 +86,7 @@ def _weighted_non_maximum_suppression(
         remaining.clear()
         candidates.clear()
         weighted_detection = detection
-        for (index, score) in remaining_indexed_scores:
+        for index, score in remaining_indexed_scores:
             remaining_bbox = detections[index].bbox
             similarity = _overlap_similarity(remaining_bbox, detection_bbox)
             if similarity > min_suppression_threshold:
@@ -106,7 +96,7 @@ def _weighted_non_maximum_suppression(
         # weighted merging of similar (close) boxes
         if len(candidates):
             weighted = np.zeros((2 + len(detection), 2), dtype=np.float32)
-            total_score = 0.
+            total_score = 0.0
             for index, score in candidates:
                 total_score += score
                 weighted += detections[index].data * score
