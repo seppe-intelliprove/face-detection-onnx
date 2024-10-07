@@ -1,6 +1,7 @@
+import math
+import numpy as np
 from bisect import bisect_left, bisect_right
 from os import PathLike
-import numpy as np
 from PIL import Image, ImageOps
 from PIL.Image import Image as PILImage
 import sys
@@ -79,7 +80,7 @@ def _get_iris_mask(results: IrisResults, iris_location: _Rect, iris_size: _Size,
     b_sqr = b**2
     for y in range(y_start, y_end):
         # evaluate iris ellipse at y
-        x = int(a * np.math.sqrt(b_sqr - (y - cy) ** 2) / b)
+        x = int(a * math.sqrt(b_sqr - (y - cy) ** 2) / b)
         x0, x1 = cx - x, cx + x
         A, B = _find_contour_segment(eyeball_sorted, (x0, y))
         left_inside = _is_below_segment(A, B, (x0, y), box_center_y)

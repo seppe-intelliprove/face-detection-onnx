@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 # Copyright © 2021 Patrick Levin
 # SPDX-Identifier: MIT
+import math
 from dataclasses import dataclass
 import numpy as np
 from typing import Optional, Tuple, Union
@@ -59,7 +60,7 @@ class Rect:
         pts = [(x - w, y - h), (x + w, y - h), (x + w, y + h), (x - w, y + h)]
         if self.rotation == 0:
             return pts
-        s, c = np.math.sin(self.rotation), np.math.cos(self.rotation)
+        s, c = math.sin(self.rotation), math.cos(self.rotation)
         t = np.array(pts) - (x, y)
         r = np.array([[c, s], [-s, c]])
         return np.matmul(t, r) + (x, y)
