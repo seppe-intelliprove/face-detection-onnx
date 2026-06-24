@@ -556,10 +556,10 @@ class IrisLandmark:
 
         eye_shape = self.session.get_outputs()[0].shape
         if eye_shape[-1] != NUM_DIMS * NUM_EYE_LANDMARKS:
-            raise ModelDataError('unexpected number of eye landmarks: ' f'{eye_shape[-1]}')
+            raise ModelDataError(f'unexpected number of eye landmarks: {eye_shape[-1]}')
         iris_shape = self.session.get_outputs()[1].shape
         if iris_shape[-1] != NUM_DIMS * NUM_IRIS_LANDMARKS:
-            raise ModelDataError('unexpected number of iris landmarks: ' f'{iris_shape[-1]}')
+            raise ModelDataError(f'unexpected number of iris landmarks: {iris_shape[-1]}')
 
     def __call__(self, image: Union[Image, np.ndarray, str], roi: Optional[Rect] = None, is_right_eye: bool = False) -> IrisResults:
         height, width = self.input_shape[1:3]

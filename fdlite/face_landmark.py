@@ -245,7 +245,7 @@ class FaceLandmark:
         data_shape = self.session.get_outputs()[0].shape
         num_exected_elements = NUM_DIMS * NUM_LANDMARKS
         if data_shape[-1] < num_exected_elements:
-            raise ModelDataError(f'incompatible model: {data_shape} < ' f'{num_exected_elements}')
+            raise ModelDataError(f'incompatible model: {data_shape} < {num_exected_elements}')
 
     def __call__(self, image: Union[Image, np.ndarray, str], roi: Optional[Rect] = None) -> List[Landmark]:
         """Run inference and return detections from a given image

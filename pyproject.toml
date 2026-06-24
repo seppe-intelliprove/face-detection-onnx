@@ -17,7 +17,7 @@ python = ">=3.8"
 onnxruntime = ">=1.15"
 Pillow = ">=10.3.0"
 
-[tool.poetry.dev-dependencies]
+[tool.poetry.group.dev.dependencies]
 flake8 = "*"
 
 [build-system]
